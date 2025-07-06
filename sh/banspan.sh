@@ -68,7 +68,7 @@ HOSTNAME=$(hostname)
 TIMESTAMP=$(date +"%Y-%m-%d %T")
 
 # 获取CPU使用率超过90%的进程
-HIGH_CPU_PROCESSES=$(ps -eo pid,user,%cpu,cmd --sort=-%cpu | awk 'NR>1 && $3 > 90')
+HIGH_CPU_PROCESSES=$(ps -eo pid,user,%cpu,cmd --sort=-%cpu | awk 'NR>1 && $3 > 190')
 
 if [ -n "$HIGH_CPU_PROCESSES" ]; then
     # 构建JSON数据
