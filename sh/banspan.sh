@@ -23,8 +23,14 @@ for port in "${MAIL_PORTS[@]}"; do
     sudo iptables -A OUTPUT -p udp --dport $port -j DROP
 done
 
+# 预先设置iptables-persistent的配置（关键修改）
+echo "iptables-persistent iptables-persistent/autosave_v4 boolean false" | sudo debconf-set-selections
+echo "iptables-persistent iptables-persistent/autosave_v6 boolean false" | sudo debconf-set-selections
+
+# 安装iptables-persistent（无交互）
+sudo DEBIAN_FRONTEND=noninteractive apt install -y iptables-persistent
+
 # 保存iptables规则（持久化）
-sudo apt install -y iptables-persistent
 sudo netfilter-persistent save
 
 # 修改SSH端口
