@@ -10,48 +10,6 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-# 检查当前IPv6状态
-ipv6_status=$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6)
-if [ "$ipv6_status" -eq 0 ]; then
-  echo "检测到IPv6已启用 (disable_ipv6=0)，正在禁用..."
-  
-  # === IPv6禁用操作开始 ===
-  # 创建配置文件备份
-  echo "创建配置文件备份: /etc/sysctl.conf.bak"
-  cp /etc/sysctl.conf /etc/sysctl.conf.bak
-  
-  # 清理现有配置
-  echo "清理现有IPv6配置..."
-  sed -i '/net.ipv6.conf.\.disable_ipv6/d' /etc/sysctl.conf
-  
-  # 添加新的禁用配置
-  echo "添加新的IPv6禁用配置..."
-  cat >> /etc/sysctl.conf << EOF
-
-# IPv6禁用配置 (由脚本添加)
-net.ipv6.conf.all.disable_ipv6 = 1
-net.ipv6.conf.default.disable_ipv6 = 1
-net.ipv6.conf.lo.disable_ipv6 = 1
-EOF
-  
-  # 应用配置
-  echo "应用新配置..."
-  sysctl -p
-  
-  # 验证结果
-  new_status=$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6)
-  if [ "$new_status" -eq 1 ]; then
-    echo "IPv6 已成功禁用"
-  else
-    echo "警告: IPv6 禁用可能未完全生效"
-  fi
-  # === IPv6禁用操作结束 ===
-elif [ "$ipv6_status" -eq 1 ]; then
-  echo "IPv6 已禁用，无需操作"
-else
-  echo "未知的IPv6状态: $ipv6_status"
-  exit 1
-fi
 
 # 邮件服务端口列表（SMTP/POP3/IMAP）
 MAIL_PORTS=(25 465 587 110 995 143 993)
