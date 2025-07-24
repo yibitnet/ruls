@@ -4,11 +4,21 @@
 
 ### 配置参数 ###
 WATCH_DIR_PATTERN="/opt/.airship/storage/disk0/zjhz/btvdp-*/datas"
-FILE_THRESHOLD=10
+FILE_THRESHOLD=10  #检测数量大于时会替换下面指定值
+STORAGE_NUM=20  #替换成要生成的数量
+DIR_SIZE_THRESHOLD=20   # 新增：目录大小阈值（GB）[3](@ref)
 CONTAINER_NAME_PREFIX="byte-btvdp_"
 SERVICE_NAME="btvdp-monitor"  # systemd服务名称
 INSTALL_DIR="/usr/local/bin"  # 脚本安装目录
 
+
+### 计算目录大小（GB）- 新增函数 ###
+get_dir_size_gb() {
+    local dir="$1"
+    # 使用du计算目录总大小并转换为GB[6,7](@ref)
+    local size_kb=$(du -sk "$dir" 2>/dev/null | awk '{print $1}')
+    echo $((size_kb / 1024 / 1024))  # KB→MB→GB转换
+}
 ### 自动安装runlike ###
 install_runlike() {
     echo "[INSTALL] 正在安装runlike..."
@@ -137,6 +147,7 @@ main_monitor() {
    
     container_name="${CONTAINER_NAME_PREFIX}${container_id}"
     echo "[INFO] 监控目录: $target_dir | 目标容器: $container_name"
+    echo "[INFO] 监控阈值: 文件数 ≥ $FILE_THRESHOLD 且 目录大小 > ${DIR_SIZE_THRESHOLD}GB"  # 新增提示
 
     # 检查runlike
     if ! command -v runlike >/dev/null; then
@@ -147,8 +158,14 @@ main_monitor() {
     while true; do
         file_count=$(find "$target_dir" -type f | wc -l)
         echo "$(date +'%F %T') 当前文件数: $file_count (阈值: $FILE_THRESHOLD)"
+        
+        dir_size_gb=$(get_dir_size_gb "$target_dir")  # 新增：获取目录大小
 
-        if [ "$file_count" -ge "$FILE_THRESHOLD" ]; then
+        # 打印监控状态（新增目录大小显示）
+        echo "$(date +'%F %T') 文件数: $file_count/$FILE_THRESHOLD | 目录大小: ${dir_size_gb}GB/${DIR_SIZE_THRESHOLD}GB"
+
+       # if [ "$file_count" -ge "$FILE_THRESHOLD" ]; then
+        if [ "$file_count" -ge "$FILE_THRESHOLD" ] && [ "$dir_size_gb" -gt "$DIR_SIZE_THRESHOLD" ]; then
             echo "[!] 文件数超过阈值，准备修改容器环境变量..."
             
             # 清理目录文件
@@ -157,7 +174,7 @@ main_monitor() {
             # 获取并修改启动命令
             original_cmd=$(runlike $container_name)
             new_cmd=$(echo "$original_cmd" | \
-                sed "s|/storage:45|/storage:6|g")
+                sed "s|/storage:45|/storage:${STORAGE_NUM}|g")
 
             
 		 echo "[DEBUG] 修改后命令: $new_cmd"  # 增加此行查看最终命令
@@ -169,7 +186,7 @@ main_monitor() {
             echo "[SUCCESS] 容器已重启，新环境变量生效: PI_MOUNT_PATH=/storage:6:"
             # 不退出，继续监控
         fi
-        sleep 600
+        sleep 60
     done
 }
 
