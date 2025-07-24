@@ -186,7 +186,7 @@ main_monitor() {
             echo "[SUCCESS] 容器已重启，新环境变量生效: PI_MOUNT_PATH=/storage:6:"
             # 不退出，继续监控
         fi
-        sleep 60
+        sleep 600
     done
 }
 
